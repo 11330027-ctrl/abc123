@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>學校載具預約租借系統</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select { width: 100%; padding: 8px; box-sizing: border-box; }
+        button { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; }
+        .error { color: red; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <h2>🎒 載具租借申請表單</h2>
+    <form method="post" id="rentalForm">
+        {% csrf_token %}
+        
+        <!-- 1. 選擇日期、節次與學部 -->
+        <div class="form-group">
+            <label>租借日期：</label>
+            {{ form.date }}
+        </div>
+        <div class="form-group">
+            <label>使用節次：</label>
+            {{ form.period }}
+        </div>
+        <div class="form-group">
+            <label>所屬學部：</label>
+            {{ form.school_section }}
+        </div>
+        
+        <!-- 2. 基本資料填寫 -->
+        <div class="form-group">
+            <label>申請人姓名：</label>
+            {{ form.student_name }}
+        </div>
+        <div class="form-group">
+            <label>申請班級：</label>
+            {{ form.student_class }}
+        </div>
+        
+        <!-- 3. 動態載具選單（會自動隱藏已借出的載具） -->
+        <div class="form-group">
+            <label>欲借用載具：</label>
+            {{ form.device }}
+        </div>
+        
+        <!-- 4. 數量欄位（僅在選擇散裝時動態顯示） -->
+        <div class="form-group" id="qty_field" style="display:none;">
+            <label>借用數量：</label>
+            {{ form.quantity }}
+        </div>
+
+        <!-- 錯誤訊息顯示區 -->
+        {% if form.non_field_errors %}
+            <div class="error">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <button type="submit">確認提交申請</button>
+    </form>
+
+    <script>
+        const dateInput = document.getElementById('id_date');
+        const periodSelect = document.getElementById('id_period');
+        const sectionSelect = document.getElementById('id_school_section');
+        const deviceSelect = document.getElementById('id_device');
+        const qtyField = document.getElementById('qty_field');
+
+        // 當日期、節次、學部改變時，觸發後端 API 重新撈取可用載具
+        function updateAvailableDevices() {
+            const date = dateInput.value;
+            const period = periodSelect.value;
+            const section = sectionSelect.value;
+
+            if (!date || !period || !section) return;
+
+            // 呼叫後端 API，取得當下未被借走且符合學部的載具
+            fetch(`/rental/api/get-devices/?date=${date}&period=${period}&section=${section}`)
+                .then(res => res.json())
+                .then(data => {
+                    deviceSelect.innerHTML = '<option value="">-- 請選擇載具 --</option>';
+                    data.devices.forEach(d => {
+                        let opt = document.createElement('option');
+                        opt.value = d.id;
+                        opt.textContent = d.name;
+                        opt.dataset.isBulk = d.is_bulk; // 標記是否為散裝
+                        deviceSelect.appendChild(opt);
+                    });
+                    toggleQuantityField();
+                });
+        }
+
+        // 控制數量欄位顯示與隱藏
+        function toggleQuantityField() {
+            const selectedOpt = deviceSelect.options[deviceSelect.selectedIndex];
+            if (selectedOpt && selectedOpt.dataset.isBulk === 'true') {
+                qtyField.style.display = 'block';
+            } else {
+                qtyField.style.display = 'none';
+            }
+        }
+
+        // 綁定監聽事件
+        dateInput.addEventListener('change', updateAvailableDevices);
+        periodSelect.addEventListener('change', updateAvailableDevices);
+        sectionSelect.addEventListener('change', updateAvailableDevices);
+        deviceSelect.addEventListener('change', toggleQuantityField);
+    </script>
+</body>
+</html>

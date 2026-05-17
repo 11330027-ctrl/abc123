@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>管理員節日/月/年統計日曆</title>
+    <style>
+        body { font-family: sans-serif; margin: 30px; }
+        .nav { margin-bottom: 20px; }
+        .nav a { margin-right: 15px; text-decoration: none; padding: 5px 10px; background: #eee; color: #333; border-radius: 4px; }
+        .nav a.active { background: #007bff; color: white; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f4f4f4; }
+    </style>
+</head>
+<body>
+    <h2>📊 管理員數據統計儀表板</h2>
+    
+    <!-- 篩選切換按鈕 -->
+    <div class="nav">
+        <strong>統計維度：</strong>
+        <a href="?view_type=day" class="{% if view_type == 'day' %}active{% endif %}">本日統計</a>
+        <a href="?view_type=month" class="{% if view_type == 'month' %}active{% endif %}">本月統計</a>
+        <a href="?view_type=year" class="{% if view_type == 'year' %}active{% endif %}">本年統計</a>
+    </div>
+
+    <h3>當前查看範圍：{{ target_date }} ({% if view_type == 'day' %}單日{% elif view_type == 'month' %}全月{% else %}全年{% endif %})</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>使用節次</th>
+                <th>載具類型</th>
+                <th>載具名稱/編號</th>
+                <th>累計借出總數量</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in stats %}
+            <tr>
+                <td>第 {{ row.period }} 節</td>
+                <td>{{ row.device__device_type }}</td>
+                <td>{{ row.device__name }}</td>
+                <td><strong>{{ row.total_qty }}</strong> 台</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" style="text-align: center; color: #999;">此區間尚無任何租借紀錄。</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
